@@ -22,8 +22,8 @@ const io = new Server(server, {
 const getSocketId = (receiver) => {
     return onlineUsers[receiver]
 }
-
-io.on("connection", async (socket) => {
+//setting up socket.io
+io.on("connection", async (socket) => { //listens when someone joins/starts the app
     let user = socket.handshake.query
     let connectedUser;
     try {
@@ -32,22 +32,22 @@ io.on("connection", async (socket) => {
             delete onlineUsers[connectedUser.userID]
             if (!onlineUsers[connectedUser.userID]) {
                 onlineUsers[connectedUser.userID] = socket.id
-                io.emit("onlineUsers", onlineUsers);
+                io.emit("onlineUsers", onlineUsers); //sends online users to the connected users
             }
         }
         socket.on("send-message-private", async (data) => {
             const messageData = await sendPrivateMessageUtility(connectedUser.userID, data.receiverID, data.message)
             if (messageData.status == "success") {
-                io.to(getSocketId(data.receiverID)).emit("get-message-private", messageData)
+                io.to(getSocketId(data.receiverID)).emit("get-message-private", messageData) //sends message to a certain users
             }
         });
         socket.on("added-to-group", async (data) => {
             const response = await AddGroupMember(data.groupID, data.memberID);
             if (response.status == "success") {
-                io.to(onlineUsers[data.memberID]).emit("added-to-group", response);
+                io.to(onlineUsers[data.memberID]).emit("added-to-group", response); //sends notification to a user added to the group
             }
         });
-        socket.on("join_group", (data) => {
+        socket.on("join_group", (data) => { //to join a room with a group id
             if (data && data.groupID) {
                 if (GroupRooms.includes(data.groupID)) {
                     socket.join(data.groupID)
@@ -62,7 +62,7 @@ io.on("connection", async (socket) => {
             if (messageData.status == "success") {
                 const groupRoom = GroupRooms.find((item) => item == data.groupID);
                 if (groupRoom) {
-                    io.to(groupRoom).emit("get-message-public", messageData)
+                    io.to(groupRoom).emit("get-message-public", messageData) //sends message to all the connected users in the group
                 } else {
                     GroupRooms.push(data.groupID)
                 }
